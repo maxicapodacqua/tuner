@@ -1,11 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Basic HTML Page</title>
-</head>
-<body>
-    <h1>Hello, World!</h1>
-</body>
+  </head>
+  <body>
+    <h1>Tuner Proof of concept</h1>
+    <div id="container"></div>
+    <script>
+      const container = document.getElementById("container");
+
+      container.textContent = "Hello World";
+
+      const audioCtx = new AudioContext();
+      const analyser = audioCtx.createAnalyser();
+      const gainNode = audioCtx.createGain();
+      const distortion = audioCtx.createWaveShaper();
+
+      gainNode.gain.value = 2;
+
+      distortion.oversample = "4x";
+
+
+      analyser.fftSize = 2048;
+
+
+      let source;
+
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          console.log(stream);
+          source = audioCtx.createMediaStreamSource(stream);
+          source.connect(analyser);
+
+          distortion.connect(gainNode);
+
+          analyser.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          start();
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+
+      function start() {
+        requestAnimationFrame(animationFrame);
+      }
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Float32Array(bufferLength);
+      function animationFrame() {
+        analyser.getFloatFrequencyData(dataArray);
+        for (let i = 0; i < bufferLength; i++) {
+          const freq = audioCtx.sampleRate / dataArray[i];
+          if (freq == 0) {
+            continue;
+          }
+          document.getElementById("container").textContent = freq;
+        }
+
+        requestAnimationFrame(animationFrame);
+      }
+    </script>
+  </body>
 </html>
